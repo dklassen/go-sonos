@@ -49,7 +49,6 @@ package ssdp
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -306,7 +305,7 @@ type Manager interface {
 	// for responses, and the subscribe flag (currrently unimplemented)
 	// determines whether to listen to asynchronous updates after the
 	// initial query is complete.
-	Discover(ifiname, port string, subscribe bool) error
+	Discover(ifiname string, subscribe bool) error
 	// After discovery is complete searches for devices implementing
 	// the services specified in query.
 	QueryServices(query ServiceQueryTerms) ServiceMap
@@ -343,8 +342,8 @@ func MakeManager() Manager {
 	return mgr
 }
 
-func (this *ssdpDefaultManager) Discover(ifiname, port string, subscribe bool) (err error) {
-	this.ssdpDiscoverImpl(ifiname, port, subscribe)
+func (this *ssdpDefaultManager) Discover(ifiname string, subscribe bool) (err error) {
+	this.ssdpDiscoverImpl(ifiname, subscribe)
 	return
 }
 
@@ -616,16 +615,8 @@ func (this *ssdpDefaultManager) ssdpDiscoverLoop(conn net.Conn) {
 	}
 }
 
-func (this *ssdpDefaultManager) ssdpUnicastDiscoverImpl(ifi *net.Interface, port string) (err error) {
-	addrs, err := ifi.Addrs()
-	if nil != err {
-		return
-	} else if 0 == len(addrs) {
-		err = errors.New(fmt.Sprintf("No addresses found for interface %s", ifi.Name))
-		return
-	}
-	lip := addrs[0].(*net.IPNet).IP
-	laddr, err := net.ResolveUDPAddr(ssdpBroadcastVersion, net.JoinHostPort(lip.String(), port))
+func (this *ssdpDefaultManager) ssdpUnicastDiscoverImpl() (err error) {
+	laddr, err := net.ResolveUDPAddr(ssdpBroadcastVersion, ":0")
 	if nil != err {
 		return
 	}
@@ -913,11 +904,11 @@ func (this *ssdpDefaultManager) ssdpQueryLoop() (err error) {
 	return
 }
 
-func (this *ssdpDefaultManager) ssdpDiscoverImpl(ifiname, port string, subscribe bool) {
+func (this *ssdpDefaultManager) ssdpDiscoverImpl(ifiname string, subscribe bool) {
 	ifi, err := net.InterfaceByName(ifiname)
 	if nil != err {
 		panic(err)
-	} else if err = this.ssdpUnicastDiscoverImpl(ifi, port); nil != err {
+	} else if err = this.ssdpUnicastDiscoverImpl(); nil != err {
 		panic(err)
 	} else if err = this.ssdpMulticastDiscoverImpl(ifi, subscribe); nil != err {
 		panic(err)

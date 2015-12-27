@@ -43,9 +43,8 @@ func main() {
 
 	// Discover()
 	//  eth0 := Network device to query for UPnP devices
-	// 11209 := Free local port for discovery replies
 	// false := Do not subscribe for asynchronous updates
-	mgr.Discover("eth0", "11209", false)
+	mgr.Discover("en0", false)
 
 	// SericeQueryTerms
 	// A map of service keys to minimum required version
